@@ -1,0 +1,29 @@
+@page "/glossary"
+@inject KeywordStore Store
+@inject Favorites Favs
+@implements IDisposable
+
+<PageTitle>Glossary · MTG Keywords</PageTitle>
+<h1 class="page-title">Glossary</h1>
+<input class="search" type="search" placeholder="Filter by name" autocomplete="off" autocapitalize="off" spellcheck="false"
+       @bind="Text" @bind:event="oninput" />
+<KindChips @bind-Value="Kind" />
+<p class="count">@Items().Count() keywords</p>
+<KeywordList Items="Items()" Grouped="true" Empty="No keywords match." />
+
+@code {
+    string Text { get => SearchState.GlossaryText; set => SearchState.GlossaryText = value; }
+    string Kind { get => SearchState.GlossaryKind; set => SearchState.GlossaryKind = value; }
+
+    protected override void OnInitialized() => Favs.Changed += StateHasChanged;
+    public void Dispose() => Favs.Changed -= StateHasChanged;
+
+    IEnumerable<Keyword> Items()
+    {
+        IEnumerable<Keyword> q = Store.All;
+        if (Kind != "All") q = q.Where(k => k.Kind == Kind);
+        var t = Text.Trim();
+        if (t.Length > 0) q = q.Where(k => k.Name.Contains(t, StringComparison.OrdinalIgnoreCase));
+        return q;
+    }
+}

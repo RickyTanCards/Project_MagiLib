@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+dist/
+web-publish/
+out/
+
+# The Comprehensive Rules PDF is Wizards of the Coast's document; keep it out of a public repo.
+MagicCompRules*.pdf

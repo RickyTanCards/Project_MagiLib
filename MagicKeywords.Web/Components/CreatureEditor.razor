@@ -1,0 +1,93 @@
+<details class="card editor" open>
+    <summary>
+        <span class="editor-title">@Title</span>
+        <span class="editor-sum">@Summary()</span>
+    </summary>
+
+    <label class="field">
+        <span class="field-label">Name</span>
+        <input type="text" @bind="Model.Name" @bind:event="oninput" autocomplete="off" />
+    </label>
+
+    <div class="pt">
+        <div>
+            <span class="field-label">Power</span>
+            <Stepper @bind-Value="Model.Power" Min="-9" Max="99" Label="power" />
+        </div>
+        <div>
+            <span class="field-label">Toughness</span>
+            <Stepper @bind-Value="Model.Toughness" Min="-9" Max="99" Label="toughness" />
+        </div>
+    </div>
+
+    <span class="field-label">Colors</span>
+    <div class="chips wrap">
+        @foreach (var (c, n) in Colors)
+        {
+            <button type="button" class="chip color-@c @(Model.Colors.Contains(c) ? "on" : "")" @onclick="() => ToggleColor(c)">@n</button>
+        }
+        <button type="button" class="chip @(Model.Artifact ? "on" : "")" @onclick="() => Model.Artifact = !Model.Artifact">Artifact</button>
+    </div>
+
+    <span class="field-label">Keywords</span>
+    @if (Model.Kw.Count == 0)
+    {
+        <p class="hint">None yet.</p>
+    }
+    @foreach (var name in Model.Kw.Keys.OrderBy(x => x).ToList())
+    {
+        var def = SimKeywords.All.First(k => k.Name == name);
+        <div class="kw-selected">
+            <span class="kw-name">@name</span>
+            @if (def.Numeric)
+            {
+                <Stepper Value="Model.Kw[name]" ValueChanged="v => Model.Kw[name] = v" Min="1" Max="20" Label="@name" />
+            }
+            <button type="button" class="remove" @onclick="() => Model.Kw.Remove(name)" aria-label="Remove @name">✕</button>
+        </div>
+    }
+
+    <button type="button" class="btn ghost small" @onclick="() => picking = !picking">@(picking ? "Done" : "+ Add keywords")</button>
+
+    @if (picking)
+    {
+        <div class="picker">
+            <input class="search" type="search" placeholder="Filter keywords" @bind="filter" @bind:event="oninput" autocomplete="off" autocapitalize="off" spellcheck="false" />
+            @foreach (var g in SimKeywords.All.Where(k => filter.Trim() == "" || k.Name.Contains(filter.Trim(), StringComparison.OrdinalIgnoreCase)).GroupBy(k => k.Group))
+            {
+                <div class="group-label">@g.Key.ToUpper()</div>
+                <div class="chips wrap">
+                    @foreach (var k in g)
+                    {
+                        <button type="button" class="chip @(Model.Kw.ContainsKey(k.Name) ? "on" : "")" @onclick="() => ToggleKw(k.Name)">@k.Name</button>
+                    }
+                </div>
+            }
+        </div>
+    }
+</details>
+
+@code {
+    static readonly (char, string)[] Colors = { ('W', "White"), ('U', "Blue"), ('B', "Black"), ('R', "Red"), ('G', "Green") };
+
+    [Parameter, EditorRequired] public CreatureModel Model { get; set; } = null!;
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    bool picking;
+    string filter = "";
+
+    void ToggleColor(char c) { if (!Model.Colors.Remove(c)) Model.Colors.Add(c); }
+
+    void ToggleKw(string name)
+    {
+        if (!Model.Kw.Remove(name)) Model.Kw[name] = 1;
+    }
+
+    string Summary()
+    {
+        var kws = Model.Kw.Count == 0 ? "no keywords" : string.Join(", ", Model.Kw.OrderBy(k => k.Key).Select(k =>
+            SimKeywords.All.Any(x => x.Numeric && x.Name == k.Key) ? $"{k.Key} {k.Value}" : k.Key));
+        var n = string.IsNullOrWhiteSpace(Model.Name) ? "(unnamed)" : Model.Name.Trim();
+        return $"{n} · {Model.Power}/{Model.Toughness} · {kws}";
+    }
+}

@@ -1,0 +1,18 @@
+<div class="stepper">
+    <button type="button" class="step" @onclick="Dec" aria-label="Decrease @Label">−</button>
+    <input type="number" inputmode="numeric" value="@Value" @onchange="OnChange" aria-label="@Label" />
+    <button type="button" class="step" @onclick="Inc" aria-label="Increase @Label">+</button>
+</div>
+
+@code {
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+    [Parameter] public int Min { get; set; } = -99;
+    [Parameter] public int Max { get; set; } = 999;
+    [Parameter] public string Label { get; set; } = "";
+
+    Task Set(int v) => ValueChanged.InvokeAsync(Math.Clamp(v, Min, Max));
+    Task Inc() => Set(Value + 1);
+    Task Dec() => Set(Value - 1);
+    Task OnChange(ChangeEventArgs e) => Set(int.TryParse(e.Value?.ToString(), out var v) ? v : Value);
+}

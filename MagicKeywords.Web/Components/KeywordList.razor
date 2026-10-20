@@ -1,0 +1,22 @@
+@if (!Items.Any())
+{
+    <p class="empty">@Empty</p>
+}
+else if (Grouped)
+{
+    @foreach (var g in Items.GroupBy(k => k.Letter))
+    {
+        <div class="letter">@g.Key</div>
+        @foreach (var k in g) { <KeywordRow Item="k" Snippet="false" /> }
+    }
+}
+else
+{
+    @foreach (var k in Items) { <KeywordRow Item="k" Snippet="true" /> }
+}
+
+@code {
+    [Parameter, EditorRequired] public IEnumerable<Keyword> Items { get; set; } = Enumerable.Empty<Keyword>();
+    [Parameter] public bool Grouped { get; set; }
+    [Parameter] public string Empty { get; set; } = "Nothing here.";
+}

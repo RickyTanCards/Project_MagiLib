@@ -1,0 +1,39 @@
+@page "/favorites"
+@inject KeywordStore Store
+@inject Favorites Favs
+@implements IDisposable
+
+<PageTitle>Favorites · MTG Keywords</PageTitle>
+<h1 class="page-title">Favorites</h1>
+<KeywordList Items="Items()" Empty="No favorites yet. Open a keyword and tap the star." />
+
+<details class="card backup">
+    <summary>Back up or restore favorites</summary>
+    <p class="hint">Favorites are stored on this device. iOS can clear a web app's storage if it goes unused for a long time, so copy this text somewhere safe. To restore, paste it back and tap Import.</p>
+    <textarea @bind="backup" @bind:event="oninput" rows="6" spellcheck="false" autocapitalize="off"></textarea>
+    <div class="btn-row">
+        <button class="btn ghost" @onclick="Refresh">Show current list</button>
+        <button class="btn" @onclick="Import" disabled="@(string.IsNullOrWhiteSpace(backup))">Import</button>
+    </div>
+    @if (msg != "") { <p class="hint">@msg</p> }
+</details>
+
+@code {
+    string backup = "";
+    string msg = "";
+
+    protected override void OnInitialized() { Favs.Changed += OnChanged; backup = Favs.Export(); }
+    public void Dispose() => Favs.Changed -= OnChanged;
+    void OnChanged() => StateHasChanged();
+
+    IEnumerable<Keyword> Items() => Store.All.Where(Favs.Is).OrderBy(k => k.Name, StringComparer.OrdinalIgnoreCase);
+
+    void Refresh() { backup = Favs.Export(); msg = ""; }
+
+    async Task Import()
+    {
+        await Favs.ImportAsync(backup);
+        backup = Favs.Export();
+        msg = $"Imported. You now have {Favs.Names.Count} favorite{(Favs.Names.Count == 1 ? "" : "s")}.";
+    }
+}

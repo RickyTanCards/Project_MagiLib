@@ -1,0 +1,26 @@
+@inject Favorites Favs
+
+<a class="row" href="@KeywordStore.Link(Item)">
+    <span class="row-main">
+        <span class="row-name">@Item.Name</span>
+        @if (Snippet)
+        {
+            <span class="row-snippet">@Short()</span>
+        }
+    </span>
+    <span class="row-meta">
+        @if (Favs.Is(Item)) { <span class="star">★</span> }
+        <span class="kind">@(Item.Kind == "Keyword Action" ? "Action" : "Ability")</span>
+    </span>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public Keyword Item { get; set; } = null!;
+    [Parameter] public bool Snippet { get; set; }
+
+    string Short()
+    {
+        var d = KeywordStore.Ref(Item, out _);
+        return d.Length <= 110 ? d : d[..107].TrimEnd() + "…";
+    }
+}

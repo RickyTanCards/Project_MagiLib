@@ -1,0 +1,13 @@
+<div class="chips">
+    @foreach (var (key, label) in Options)
+    {
+        <button type="button" class="chip @(Value == key ? "on" : "")" @onclick="() => Pick(key)">@label</button>
+    }
+</div>
+
+@code {
+    static readonly (string, string)[] Options = { ("All", "All"), ("Keyword Ability", "Abilities"), ("Keyword Action", "Actions") };
+    [Parameter] public string Value { get; set; } = "All";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    Task Pick(string k) => ValueChanged.InvokeAsync(k);
+}

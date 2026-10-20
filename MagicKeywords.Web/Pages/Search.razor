@@ -1,0 +1,40 @@
+@page "/"
+@inject KeywordStore Store
+@inject Favorites Favs
+@implements IDisposable
+
+<PageTitle>Search · MTG Keywords</PageTitle>
+<h1 class="page-title">Search</h1>
+<input class="search" type="search" placeholder="Search keywords and rules text" autocomplete="off" autocapitalize="off" spellcheck="false"
+       @bind="Text" @bind:event="oninput" />
+<KindChips @bind-Value="Kind" />
+<p class="count">@Count()</p>
+<KeywordList Items="Results()" Empty="No keywords match." />
+
+@code {
+    string Text { get => SearchState.Text; set => SearchState.Text = value; }
+    string Kind { get => SearchState.Kind; set => SearchState.Kind = value; }
+
+    protected override void OnInitialized() => Favs.Changed += StateHasChanged;
+    public void Dispose() => Favs.Changed -= StateHasChanged;
+
+    IEnumerable<Keyword> Results()
+    {
+        var t = Text.Trim();
+        if (t.Length == 0) return Enumerable.Empty<Keyword>();
+        IEnumerable<Keyword> q = Store.All;
+        if (Kind != "All") q = q.Where(k => k.Kind == Kind);
+        return q.Where(k => k.Name.Contains(t, StringComparison.OrdinalIgnoreCase) || k.Definition.Contains(t, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(k => k.Name.StartsWith(t, StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(k => k.Name.Contains(t, StringComparison.OrdinalIgnoreCase))
+                .ThenBy(k => k.Name)
+                .ToList();
+    }
+
+    string Count()
+    {
+        if (Text.Trim().Length == 0) return "Type to search names and definitions.";
+        int n = Results().Count();
+        return $"{n} result{(n == 1 ? "" : "s")}";
+    }
+}

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MagicKeywords.Core/MagicKeywords.Core.csproj" />
+  <Project Path="MagicKeywords.Web/MagicKeywords.Web.csproj" />
+  <Project Path="MagicKeywords/MagicKeywords.csproj" />
+</Solution>

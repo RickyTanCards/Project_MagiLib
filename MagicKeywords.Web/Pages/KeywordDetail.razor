@@ -1,0 +1,49 @@
+@page "/keyword/{Name}"
+@inject KeywordStore Store
+@inject Favorites Favs
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (item == null)
+{
+    <button class="back" @onclick="Back">‹ Back</button>
+    <p class="empty">That keyword wasn't found.</p>
+}
+else
+{
+    var def = KeywordStore.Ref(item, out var rule);
+    <PageTitle>@item.Name · MTG Keywords</PageTitle>
+    <button class="back" @onclick="Back">‹ Back</button>
+    <div class="kind-line">@item.Kind.ToUpper()</div>
+    <div class="title-row">
+        <h1 class="kw-title">@item.Name</h1>
+        <button class="fav @(Favs.Is(item) ? "on" : "")" @onclick="() => Favs.ToggleAsync(item)" aria-pressed="@Favs.Is(item)">
+            @(Favs.Is(item) ? "★ Favorited" : "☆ Favorite")
+        </button>
+    </div>
+    <h2 class="label">DEFINITION</h2>
+    <p class="definition">@def</p>
+    @if (rule != "") { <p class="ref">Comprehensive Rules · @rule</p> }
+    @if (item.Examples.Count > 0)
+    {
+        <h2 class="label">EXAMPLES</h2>
+        @foreach (var e in item.Examples)
+        {
+            <div class="card example">
+                <div class="example-head">@e.Heading</div>
+                <div>@e.Text</div>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter] public string Name { get; set; } = "";
+    Keyword? item;
+
+    protected override void OnInitialized() => Favs.Changed += StateHasChanged;
+    protected override void OnParametersSet() => item = Store.Find(Uri.UnescapeDataString(Name));
+    public void Dispose() => Favs.Changed -= StateHasChanged;
+
+    Task Back() => JS.InvokeVoidAsync("mk.back").AsTask();
+}

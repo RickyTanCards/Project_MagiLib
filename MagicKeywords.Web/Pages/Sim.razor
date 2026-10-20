@@ -1,0 +1,95 @@
+@page "/sim"
+@inject SimState S
+@inject IJSRuntime JS
+
+<PageTitle>Combat · MTG Keywords</PageTitle>
+<h1 class="page-title">Combat simulator</h1>
+<p class="hint">Creature 1 attacks alone and Creature 2 may block. The log shows each step, every triggered ability going onto the stack and resolving, and why the combat turned out the way it did.</p>
+
+<CreatureEditor Title="Creature 1 · Attacker" Model="S.Atk" />
+<CreatureEditor Title="Creature 2 · Blocker" Model="S.Def" />
+
+<section class="card">
+    <h2 class="card-title">Situation</h2>
+    <label class="switch-row"><span>Creature 2 blocks if it legally can</span><input type="checkbox" @bind="S.DefenderBlocks" /></label>
+    <label class="switch-row"><span>Creature 1 is summoning sick</span><input type="checkbox" @bind="S.AttackerSick" /></label>
+    <label class="switch-row"><span>Creature 2 starts tapped</span><input type="checkbox" @bind="S.DefenderTapped" /></label>
+    <label class="switch-row"><span>Player 2 controls a land matching Creature 1's landwalk</span><input type="checkbox" @bind="S.DefenderControlsLand" /></label>
+    <div class="pt">
+        <div><span class="field-label">Player 1 life</span><Stepper @bind-Value="S.AttackerLife" Min="1" Max="999" Label="Player 1 life" /></div>
+        <div><span class="field-label">Player 2 life</span><Stepper @bind-Value="S.DefenderLife" Min="1" Max="999" Label="Player 2 life" /></div>
+    </div>
+</section>
+
+@if (S.Result != null)
+{
+    <div id="sim-results" class="results">
+        <h2 class="label">OUTCOME</h2>
+        @foreach (var phase in Phases().Where(p => IsSummary(p.Name)).OrderBy(p => p.Name == "Result" ? 0 : 1))
+        {
+            <details class="phase highlight" open>
+                <summary>@phase.Name</summary>
+                @foreach (var l in phase.Lines)
+                {
+                    <div class="ln @Css(l.Kind)" style="margin-left:@(l.Indent * 16)px">@Prefix(l)@l.Text</div>
+                }
+            </details>
+        }
+        <h2 class="label">STEP-BY-STEP LOG</h2>
+        <p class="legend"><span class="t-trigger">⚡ trigger</span> <span class="t-stack">▤ stack</span> <span class="t-resolve">✔ resolves</span> <span class="t-damage">damage</span> <span class="t-rule">rule note</span></p>
+        @foreach (var phase in Phases().Where(p => !IsSummary(p.Name)))
+        {
+            <details class="phase" open>
+                <summary>@phase.Name</summary>
+                @foreach (var l in phase.Lines)
+                {
+                    <div class="ln @Css(l.Kind)" style="margin-left:@(l.Indent * 16)px">@Prefix(l)@l.Text</div>
+                }
+            </details>
+        }
+    </div>
+}
+
+<div class="action-bar">
+    <button class="btn ghost" @onclick="S.Swap">Swap</button>
+    <button class="btn" @onclick="Run">Simulate combat</button>
+</div>
+
+@code {
+    async Task Run()
+    {
+        S.Run();
+        StateHasChanged();
+        await Task.Yield();
+        await JS.InvokeVoidAsync("mk.scrollToId", "sim-results");
+    }
+
+    static bool IsSummary(string n) => n is "Result" or "Why it turned out this way";
+
+    record Phase(string Name, List<LogLine> Lines);
+
+    List<Phase> Phases()
+    {
+        var res = new List<Phase>();
+        foreach (var l in S.Result!)
+        {
+            if (l.Kind == LogKind.Phase) res.Add(new Phase(l.Text, new()));
+            else if (res.Count > 0) res[^1].Lines.Add(l);
+        }
+        return res;
+    }
+
+    static string Css(LogKind k) => k switch
+    {
+        LogKind.Info => "t-info", LogKind.Rule => "t-rule", LogKind.Trigger => "t-trigger", LogKind.Stack => "t-stack",
+        LogKind.Resolve => "t-resolve", LogKind.Damage => "t-damage", LogKind.Result => "t-result", _ => "",
+    };
+
+    static string Prefix(LogLine l) => l.Kind switch
+    {
+        LogKind.Trigger => "⚡ ",
+        LogKind.Resolve => "✔ ",
+        LogKind.Stack when l.Indent == 0 => "▤ ",
+        _ => "",
+    };
+}
